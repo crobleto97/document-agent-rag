@@ -1,0 +1,12 @@
+# Downloaded and generated data (rebuild with the scripts, see README)
+data/raw/
+data/processed/
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+.ipynb_checkpoints/
+
+# Secrets
+.env
