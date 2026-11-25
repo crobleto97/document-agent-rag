@@ -32,11 +32,15 @@ cp .env.example .env              # set POSTGRES_PASSWORD and the same password 
 docker compose up -d              # Postgres 16 + pgvector on localhost:5433
 pip install -r requirements.txt
 
-python src/download.py            # regulation texts -> data/raw/
+python src/download.py            # regulation texts -> data/raw/ (EUR-Lex may need a manual save, see below)
 python src/parse.py               # one chunk per article -> data/processed/chunks.jsonl
 python src/embed_load.py          # embeddings -> chunks table (first run downloads the model, ~1 GB)
 python src/search.py "¿Cuántas horas puede conducir un camionero a la semana?"
 ```
+
+**EUR-Lex bot check.** EUR-Lex sits behind an AWS WAF challenge and often answers scripts with HTTP 202 and an empty page.
+`download.py` detects this and prints the URL and target file for each text it could not fetch: open the URL in a browser,
+save it as "Web page, HTML only" with that file name, and re-run. The BOE API has no such check.
 
 ## Design choices
 
