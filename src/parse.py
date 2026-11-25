@@ -89,6 +89,18 @@ def boe_articles(xml: bytes) -> list[tuple[str, list[str]]]:
     return out
 
 
+def article_key(label: str) -> str:
+    """Stable id part for an article label: "Article 9a" -> "9a", "Artículo 9 bis" -> "9bis".
+
+    Amended EU texts insert articles with a letter (EN "9a") or a Latin suffix (ES "9 bis");
+    both must stay distinct from the plain article or their ids collide.
+    """
+    num = re.search(r"\d+(?:\s*(?:bis|ter|quater)\b|[a-z]\b)?", label, re.IGNORECASE)
+    if num:
+        return num.group(0).replace(" ", "").lower()
+    return re.sub(r"\W+", "_", label)[:40]
+
+
 def split_long(paras: list[str]) -> list[str]:
     parts, cur = [], ""
     for p in paras:
@@ -103,7 +115,7 @@ def split_long(paras: list[str]) -> list[str]:
 
 def main() -> None:
     OUT.parent.mkdir(parents=True, exist_ok=True)
-    total = 0
+    total, seen = 0, set()
     with OUT.open("w", encoding="utf-8") as f:
         for src in SOURCES:
             for lang, url in src["versions"].items():
@@ -117,13 +129,16 @@ def main() -> None:
                     arts = eurlex_articles(path.read_text(encoding="utf-8"))
                 n = 0
                 for label, paras in arts:
-                    num = re.search(r"\d+\s*(bis|ter|quater)?", label)
-                    art_key = num.group(0).replace(" ", "") if num else re.sub(r"\W+", "_", label)[:40]
+                    art_key = article_key(label)
                     parts = split_long(paras)
                     for i, text in enumerate(parts, 1):
                         suffix = f"_p{i}" if len(parts) > 1 else ""
+                        chunk_id = f"{src['id']}.{lang}.art{art_key}{suffix}"
+                        if chunk_id in seen:
+                            sys.exit(f"Duplicate chunk id {chunk_id} (article label: {label!r}).")
+                        seen.add(chunk_id)
                         chunk = {
-                            "id": f"{src['id']}.{lang}.art{art_key}{suffix}",
+                            "id": chunk_id,
                             "source_id": src["id"],
                             "source": src["short"],
                             "lang": lang,

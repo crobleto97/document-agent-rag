@@ -3,7 +3,7 @@ import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
-from parse import boe_articles, eurlex_articles, split_long  # noqa: E402
+from parse import article_key, boe_articles, eurlex_articles, split_long  # noqa: E402
 
 CONSOLIDATED = """<html><body>
 <div class="eli-subdivision" id="art_7">
@@ -55,3 +55,11 @@ def test_boe_uses_latest_version_and_skips_notes():
 def test_split_long_keeps_parts_under_limit():
     parts = split_long(["x" * 1000, "y" * 1000, "z" * 500])
     assert len(parts) == 2 and all(len(p) <= 1800 for p in parts)
+
+
+def test_article_key_keeps_inserted_articles_distinct():
+    assert article_key("Article 9") == "9"
+    assert article_key("Article 9a") == "9a"
+    assert article_key("Artículo 9 bis") == "9bis"
+    assert article_key("Artículo 47. Supuestos de responsabilidad.") == "47"
+    assert article_key("Article 12") == "12"
